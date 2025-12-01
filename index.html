@@ -5,224 +5,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Spam Guard Pro</title>
-    <style>
-        /* --- CSS: ESTILO VISUAL --- */
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --spam-color: #ef4444;
-            --ham-color: #22c55e;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-image: radial-gradient(circle at top right, #312e81, transparent),
-                radial-gradient(circle at bottom left, #1e1b4b, transparent);
-        }
-
-        .container {
-            background-color: rgba(30, 41, 59, 0.8);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-
-        h1 {
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-
-        p.subtitle {
-            color: #94a3b8;
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            background: #0f172a;
-            border: 2px solid #334155;
-            border-radius: 12px;
-            color: white;
-            padding: 1rem;
-            font-size: 1rem;
-            resize: none;
-            transition: all 0.3s;
-            box-sizing: border-box;
-            /* Importante para que no se salga */
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-        }
-
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 1.5rem;
-            width: 100%;
-            transition: transform 0.2s, background 0.2s;
-        }
-
-        button:hover {
-            background: #4f46e5;
-            transform: translateY(-2px);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        /* Resultado */
-        #result-area {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            border-radius: 12px;
-            display: none;
-            /* Oculto por defecto */
-            animation: fadeIn 0.5s ease;
-        }
-
-        .result-spam {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--spam-color);
-            color: var(--spam-color);
-        }
-
-        .result-ham {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid var(--ham-color);
-            color: var(--ham-color);
-        }
-
-        .score-bar {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-
-        .score-fill {
-            height: 100%;
-            width: 0%;
-            transition: width 1s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
-    <div class="container">
-        <h1>🛡️ AI Spam Hunter</h1>
-        <p class="subtitle">Inserta un mensaje para analizar con Inteligencia Artificial</p>
-
-        <textarea id="messageInput"
-            placeholder="Ej: ¡Urgente! Tu cuenta ha sido bloqueada. Haz clic aquí..."></textarea>
-
-        <button onclick="checkSpam()" id="analyzeBtn">Analizar Mensaje</button>
-
-        <div id="result-area">
-            <h2 id="result-title" style="margin:0; font-size: 1.5rem;"></h2>
-            <p id="result-desc" style="margin: 5px 0 0 0; opacity: 0.8;"></p>
-            <div class="score-bar">
-                <div id="score-fill" class="score-fill"></div>
-            </div>
-        </div>
+    <div class="lang-switch">
+        <button id="langBtn" class="lang-btn">🇺🇸 EN</button>
     </div>
 
-    <script>
-        // --- JAVASCRIPT: LÓGICA DEL CLIENTE ---
-        async function checkSpam() {
-            const text = document.getElementById('messageInput').value;
-            const btn = document.getElementById('analyzeBtn');
-            const resultArea = document.getElementById('result-area');
+    <div class="container">
+        <h1 data-i18n="title">🛡️ AI Spam Hunter</h1>
+        <p class="subtitle" data-i18n="subtitle">Inserta un mensaje para analizar con Inteligencia Artificial</p>
 
-            if (!text.trim()) { alert("Por favor escribe algo."); return; }
+        <div class="input-group">
+            <textarea id="messageInput" data-i18n-placeholder="placeholder"
+                placeholder="Ej: ¡Urgente! Tu cuenta ha sido bloqueada. Haz clic aquí..."></textarea>
+        </div>
 
-            // 1. UI Loading state
-            btn.innerText = "Analizando...";
-            btn.disabled = true;
-            resultArea.style.display = 'none';
+        <button id="analyzeBtn" onclick="checkSpam()">
+            <span id="btnText" data-i18n="analyzeBtn">Analizar Mensaje</span>
+            <div class="spinner" id="loadingSpinner"></div>
+        </button>
 
-            try {
-                // 2. Conexión con Python (API)
-                const response = await fetch('http://127.0.0.1:5000/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
+        <div id="result-area">
+            <h2 id="result-title"></h2>
+            <p id="result-desc"></p>
 
-                const data = await response.json();
+            <div class="score-container">
+                <div id="score-fill" class="score-fill"></div>
+            </div>
 
-                // 3. Mostrar Resultados
-                resultArea.style.display = 'block';
-                resultArea.className = data.is_spam ? 'result-spam' : 'result-ham';
+            <div id="explanation-container" style="display: none;">
+                <div class="divider"></div>
+                <p class="xai-label" data-i18n="keywordAnalysis">🔍 Análisis de palabras clave:</p>
+                <div id="explained-text" class="explained-box"></div>
+            </div>
+        </div>
 
-                const title = document.getElementById('result-title');
-                const desc = document.getElementById('result-desc');
-                const bar = document.getElementById('score-fill');
+        <p class="disclaimer" data-i18n="disclaimer">
+            ⚠️ Nota: Esta IA es una herramienta orientativa basada en SVM. Verifica siempre la fuente.
+        </p>
+    </div>
 
-                if (data.is_spam) {
-                    title.innerText = "🚨 SPAM DETECTADO";
-                    title.innerHTML = "🚨 " + data.message;
-                    bar.style.backgroundColor = "var(--spam-color)";
-                } else {
-                    title.innerText = "✅ MENSAJE SEGURO";
-                    bar.style.backgroundColor = "var(--ham-color)";
-                }
+    <footer>
+        <p>&copy; 2025 Daniel Carrasco García</p>
+    </footer>
 
-                desc.innerText = `Seguridad del modelo: ${data.confidence}%`;
-
-                // Pequeño truco para que la animación de la barra funcione
-                setTimeout(() => { bar.style.width = data.confidence + "%"; }, 100);
-
-            } catch (error) {
-                console.error(error);
-                alert("Error conectando con el servidor Python. ¿Ejecutaste 'api.py'?");
-            }
-
-            // Reset UI
-            btn.innerText = "Analizar Mensaje";
-            btn.disabled = false;
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 
 </html>
