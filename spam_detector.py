@@ -1,88 +1,99 @@
 import pandas as pd
 import os
+import joblib  # Esta es la librería para guardar/cargar la "memoria"
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score
 
-def load_data():
-    """
-    Loads the SMS Spam Collection dataset from a file.
-    """
-    filename = 'SMSSpamCollection'
-    
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"❌ Error: No encontré el archivo '{filename}'. Asegúrate de descargarlo y ponerlo en esta carpeta.")
+# Archivos donde guardaremos el cerebro de la IA
+MODEL_FILE = 'spam_model.pkl'
+VECTORIZER_FILE = 'vectorizer.pkl'
 
-    print(f"Loading data from {filename}...")
+def load_data_bilingue():
+    """Carga datos de inglés y español y los junta."""
+    frames = []
     
-    # El archivo está separado por tabulaciones (\t), no por comas
-    df = pd.read_csv(filename, sep='\t', names=['label', 'message'])
+    # 1. Cargar Inglés
+    if os.path.exists('SMSSpamCollection'):
+        print("🇬🇧 Cargando base de datos en Inglés...")
+        df_en = pd.read_csv('SMSSpamCollection', sep='\t', names=['label', 'message'])
+        frames.append(df_en)
     
-    # Convertimos etiquetas a números: 'spam' -> 1, 'ham' -> 0
-    df['label_num'] = df.label.map({'ham': 0, 'spam': 1})
+    # 2. Cargar Español
+    if os.path.exists('spam_spanish.csv'):
+        print("🇪🇸 Cargando refuerzo en Español...")
+        df_es = pd.read_csv('spam_spanish.csv')
+        frames.append(df_es)
+        
+    if not frames:
+        raise FileNotFoundError("❌ No hay datos. Ejecuta primero 'generar_espanol.py'")
+        
+    df_final = pd.concat(frames, ignore_index=True)
+    df_final['label_num'] = df_final.label.map({'ham': 0, 'spam': 1})
     
-    print(f"Data loaded! Total messages: {len(df)}")
-    print(f"Spam messages: {len(df[df['label']=='spam'])}")
-    print(f"Ham messages: {len(df[df['label']=='ham'])}")
-    
-    return df
+    print(f"📚 Total de mensajes para aprender: {len(df_final)}")
+    return df_final
 
 def train_model():
-    """
-    Trains the model with real data.
-    """
-    # 1. Load Data
-    try:
-        df = load_data()
-    except Exception as e:
-        print(e)
-        return None, None
-
-    # 2. Split Data
+    """Entrena el modelo desde cero."""
+    df = load_data_bilingue()
+    
     X_train, X_test, y_train, y_test = train_test_split(
-        df['message'], df['label_num'], test_size=0.25, random_state=42
+        df['message'], df['label_num'], test_size=0.2, random_state=42
     )
     
-    # 3. Vectorization
-    vectorizer = CountVectorizer()
+    vectorizer = CountVectorizer(strip_accents='unicode')
     X_train_vec = vectorizer.fit_transform(X_train)
     X_test_vec = vectorizer.transform(X_test)
     
-    # 4. Train Model
-    print("Training model (this might take a second)...")
+    print("🧠 Entrenando IA Bilingüe (esto puede tardar un poco)...")
     model = MultinomialNB()
     model.fit(X_train_vec, y_train)
     
-    # 5. Evaluate
-    predictions = model.predict(X_test_vec)
-    acc = accuracy_score(y_test, predictions)
-    print(f"\nModel trained successfully!")
-    print(f"Accuracy: {acc * 100:.2f}%")
-    print("\nDetailed Report:\n")
-    print(classification_report(y_test, predictions, target_names=['Ham', 'Spam']))
+    acc = accuracy_score(y_test, model.predict(X_test_vec))
+    print(f"🎯 Precisión del sistema: {acc * 100:.2f}%")
     
     return vectorizer, model
 
-def predict_message(vectorizer, model, text):
-    """
-    Predicts if a specific message is Spam or Ham.
-    """
-    text_vec = vectorizer.transform([text])
-    prediction = model.predict(text_vec)
-    return "🚨 SPAM" if prediction[0] == 1 else "✅ HAM (Safe)"
+def predict(vectorizer, model, text):
+    """Usa el modelo para predecir."""
+    vec = vectorizer.transform([text])
+    pred = model.predict(vec)
+    prob = model.predict_proba(vec)[0]
+    
+    if pred[0] == 1:
+        return f"🚨 SPAM (Seguridad: {prob[1]*100:.1f}%)"
+    else:
+        return f"✅ LEGÍTIMO (Seguridad: {prob[0]*100:.1f}%)"
 
 if __name__ == "__main__":
-    print("--- REAL SPAM DETECTOR AI ---")
+    print("\n--- SISTEMA DE DETECCIÓN DE SPAM ---")
+
+    # LÓGICA DE CARGA INTELIGENTE
+    # 1. ¿Existen ya los archivos guardados?
+    if os.path.exists(MODEL_FILE) and os.path.exists(VECTORIZER_FILE):
+        print("💾 Cargando cerebro guardado...")
+        try:
+            model = joblib.load(MODEL_FILE)
+            cv = joblib.load(VECTORIZER_FILE)
+            print("✅ ¡Listo! Modelo cargado instantáneamente.")
+        except:
+            print("⚠️ Error cargando. Vamos a re-entrenar.")
+            cv, model = train_model()
+    else:
+        # 2. Si no existen, entrenamos y guardamos
+        print("⚠️ No hay memoria guardada. Iniciando entrenamiento...")
+        cv, model = train_model()
+        
+        # Guardamos para la próxima vez
+        joblib.dump(model, MODEL_FILE)
+        joblib.dump(cv, VECTORIZER_FILE)
+        print("💾 Modelo guardado en disco para el futuro.")
     
-    cv, clf = train_model()
-    
-    if cv and clf:
-        print("\n--- TEST AREA ---")
-        print("Tip: Try English messages (e.g., 'Win a free prize now!' or 'Hey, are you home?')")
-        while True:
-            user_input = input("\nEnter message (or 'q' to quit): ")
-            if user_input.lower() == 'q':
-                break
-            result = predict_message(cv, clf, user_input)
-            print(f"Result: {result}")
+    # Bucle de prueba
+    print("\n--- Escribe un mensaje para analizar (ES/EN) ---")
+    while True:
+        txt = input("\nMensaje (q para salir): ")
+        if txt.lower() == 'q': break
+        print(predict(cv, model, txt))
